@@ -1,0 +1,275 @@
+<?php
+    // TODO
+?>
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.6/cropper.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Upload and resize</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-size: 12px;
+            font-family: sans-serif;
+        }
+
+        .app {
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .file {
+            margin-bottom: 5px;
+        }
+
+        .main-container {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+        }
+        .image-container {
+            width: 600px;
+            height: 600px;
+            background-color: #ffffff;
+            border: 2px solid #333;
+        }
+
+        .image-container img {
+            display: block;
+            height: 600px;
+            width: auto;
+        }
+
+        .controls {
+            border-left: 4px solid #888;
+            padding: 10px 10px 10px 20px;
+            background-color: #000;
+            height: 600px;
+            width: 120px;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        .button-row button {
+            font-size: 14px;
+            width: 24px;
+            height: 24px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            background-color: #444;
+            color: #fff;
+        }
+
+        .info div {
+            padding: 2px 0;
+        }
+
+        .disabled-container {
+            pointer-events: none;
+            opacity: 0.4;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <div class="file">
+        <input type="file" id="image" accept=".jpg,.jpeg,.png">
+    </div>
+    <div class="main-container">
+
+        <div id="image-container" class="image-container"></div>
+
+        <div class="controls disabled-container" id="controls">
+
+            <div class="buttons">
+                <div class="button-row">
+                    <button id="rotate-reverse-image-btn" title="Rotate"><i class="fa fa-redo-alt"></i></button>
+                    <button id="rotate-image-btn"  title="Rotate reverse"><i class="fa fa-undo"></i></button>
+                </div>
+                <div class="button-row">
+                    <button id="zoom-in-image-btn" title="Zoom in"><i class="fa fa-search-plus"></i></button>
+                    <button id="zoom-out-image-btn" title="Zoom out"><i class="fa fa-search-minus"></i></button>
+                </div>
+                <div class="button-row">
+                    <button id="crop-image-btn" title="Crop"><i class="fa fa-crop"></i></button>
+                    <button id="scale-image-btn" title="Scale X"><i class="fa fa-arrows-alt-h"></i></button>
+                </div>
+                <div class="button-row">
+                    <button id="move-left-image-btn" title="Move left"><i class="fa fa-arrow-left"></i></button>
+                    <button id="move-right-image-btn" title="Move right"><i class="fa fa-arrow-right"></i></button>
+                </div>
+                <div class="button-row">
+                    <button id="move-up-image-btn" title="Move up"><i class="fa fa-arrow-up"></i></button>
+                    <button id="move-down-image-btn" title="Move down"><i class="fa fa-arrow-down"></i></button>
+                </div>
+                <div class="button-row">
+                    <button id="crop-download-image-btn" title="Download"><i class="fa fa-download"></i></button>
+                </div>
+            </div>
+            <div class="info">
+                <div>Width: <span id="width-lbl">0</span></div>
+                <div>Height: <span id="height-lbl">0</span></div>
+                <div>X: <span id="x-lbl">0</span></div>
+                <div>Y: <span id="y-lbl">0</span></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.6/cropper.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/EventEmitter/5.2.8/EventEmitter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.min.js"></script>
+<script>
+    window.addEventListener('load', () => {
+       const file = document.getElementById('image');
+
+       const imageReader = new ImageReader(file);
+
+       const customCropper = new CustomCropper();
+
+       imageReader.on('image-loaded', (image) => {
+           customCropper.makeCropper(image);
+           document.getElementById('controls').classList.remove('disabled-container');
+       });
+
+    });
+
+    class CustomCropper {
+        constructor() {
+            this.options = {
+                'crop': this.crop
+            };
+
+            this.cropper = null;
+
+            document.getElementById('crop-image-btn').addEventListener('click', this.cropToCanvas);
+            document.getElementById('crop-download-image-btn').addEventListener('click', this.download);
+            document.getElementById('rotate-image-btn').addEventListener('click', () => this.cropper.rotate(45));
+            document.getElementById('rotate-reverse-image-btn').addEventListener('click', () => this.cropper.rotate(-45));
+            document.getElementById('zoom-in-image-btn').addEventListener('click', () => this.cropper.zoom(0.1));
+            document.getElementById('zoom-out-image-btn').addEventListener('click', () => this.cropper.zoom(-0.1));
+            document.getElementById('scale-image-btn').addEventListener('click', () => this.cropper.scaleX(-1));
+            document.getElementById('move-left-image-btn').addEventListener('click', () => this.cropper.move(-1,0));
+            document.getElementById('move-right-image-btn').addEventListener('click', () => this.cropper.move(1,0));
+            document.getElementById('move-up-image-btn').addEventListener('click', () => this.cropper.move(0,-1));
+            document.getElementById('move-down-image-btn').addEventListener('click', () => this.cropper.move(0,1));
+
+            this.widthLbl = document.getElementById('width-lbl');
+            this.heightLbl = document.getElementById('height-lbl');
+            this.xLbl = document.getElementById('x-lbl');
+            this.yLbl = document.getElementById('y-lbl');
+
+        }
+
+        makeCropper (image) {
+            this.cropper = new Cropper(image, this.options);
+        }
+
+        crop = (event) => {
+            this.widthLbl.innerText = Math.floor(event.detail.width).toString();
+            this.heightLbl.innerText = Math.floor(event.detail.height).toString();
+            this.xLbl.innerText = Math.floor(event.detail.x).toString();
+            this.yLbl.innerText = Math.floor(event.detail.y).toString();
+        };
+
+        cropToCanvas = (e) => {
+            const imgurl =  this.cropper.getCroppedCanvas().toDataURL();
+            let img = document.createElement("img");
+            img.src = imgurl;
+            const container = document.getElementById('image-container');
+            container.innerHTML = null;
+            container.appendChild(img);
+            this.makeCropper(img);
+        };
+
+        download = (e) => {
+            const imgurl =  this.cropper.getCroppedCanvas().toDataURL();
+            saveAs(this.dataURItoBlob(imgurl), "edited.png");
+        };
+
+        dataURItoBlob = (dataURI) => {
+            const byteString = atob(dataURI.split(',')[1]);
+            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            let ia = new Uint8Array(ab);
+
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+
+            return new Blob([ab], {type: mimeString});
+        };
+
+    }
+
+    class ImageReader extends EventEmitter{
+        constructor(inputFile = null) {
+            super();
+            this.inputFile = inputFile;
+            if (this.inputFile === null) {
+                throw new Error("You must pass down an input type file element to the constructor");
+            }
+
+            this.fileReader = new FileReader();
+
+            this.inputFile.addEventListener('change', this.fileInputChanged);
+            this.fileReader.addEventListener('load', this.loadImageToDOM);
+        }
+
+        fileInputChanged = (e) => {
+            if (e.target.files[0] === undefined) {
+                throw new Error('File not selected');
+            }
+
+            const type = e.target.files[0].type;
+
+            if (!/image\/(jpg|png|jpeg)/.test(type)) {
+                throw new Error('Only images with the format jpg and png');
+            }
+
+            const image = e.target.files[0];
+            this.fileReader.readAsDataURL(image);
+        };
+
+        loadImageToDOM = (readerEvent) => {
+            const container = document.getElementById('image-container');
+            const image = new Image();
+            image.src = readerEvent.target.result;
+            container.innerHTML = null;
+            container.appendChild(image);
+            this.emit('image-loaded', image);
+        };
+    }
+</script>
+
+</body>
+</html>
